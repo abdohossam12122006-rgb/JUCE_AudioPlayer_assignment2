@@ -1,0 +1,10 @@
+# Ignore the ENTIRE Builds folder
+/Builds/
+
+# Visual Studio specific
+.vs/
+*.suo
+*.*.user
+
+# macOS
+.DS_Store
