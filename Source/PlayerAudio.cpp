@@ -22,6 +22,38 @@ void PlayerAudio::loadFile(const juce::File& file)
         transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
         readerSource.reset(newSource.release());
     }
+    if (!file.existsAsFile())
+    return false;
+if (file.existsAsFile())
+{
+    if (auto* reader = formatManager.createReaderFor(file))
+    {
+        // ðŸ”‘ Disconnect old source first
+        transportSource.stop();
+        transportSource.setSource(nullptr);
+        readerSource.reset();
+
+        // Create new reader source
+        readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+        // loop 
+        sampleRate = reader->sampleRate; 
+        // Attach safely
+        transportSource.setSource(readerSource.get(),
+            0,
+            nullptr,
+            reader->sampleRate);
+        // get metadata 
+
+
+        filename = file.getFileName();
+        auto metadata = reader->metadataValues;
+        title = metadata.getValue("title", ""); 
+        artist = metadata.getValue("artist", ""); 
+        time = reader->lengthInSamples / reader->sampleRate; 
+        transportSource.start();
+    }
+}
+return true;
 }
 
 void PlayerAudio::togglePlayPause()
@@ -32,7 +64,7 @@ void PlayerAudio::togglePlayPause()
         bIsPlaying = false;
     }
     else
-    { // <-- åäÇ ßÇä ÇáÎØÃ¡ ÃäÇ ÕáÍÊåÇ
+    { // <-- Ã¥Ã¤Ã‡ ÃŸÃ‡Ã¤ Ã‡Ã¡ÃŽÃ˜ÃƒÂ¡ ÃƒÃ¤Ã‡ Ã•Ã¡ÃÃŠÃ¥Ã‡
         transportSource.start();
         bIsPlaying = true;
     }
@@ -109,4 +141,29 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
 void PlayerAudio::releaseResources()
 {
     transportSource.releaseResources();
+}
+void PlayerAudio::toggleloop() // turn on and of repeat mode 
+{
+    islooping = !islooping; 
+}
+void PlayerAudio::updateloop() // check if the sound is finished 
+{
+    if (islooping)
+    {
+        if (readerSource != nullptr &&
+            transportSource.getCurrentPosition() >= readerSource->getTotalLength() / sampleRate)
+        {
+            transportSource.setPosition(0.0);
+            transportSource.start();
+        }
+    }
+}
+// task 6 
+double PlayerAudio::getCurrntTime() const
+{
+    return transportSource.getCurrentPosition(); 
+}
+void PlayerAudio::setCurrntTime(double newTimeInSeconds)
+{
+    transportSource.setPosition(newTimeInSeconds);
 }
