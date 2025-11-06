@@ -80,8 +80,6 @@ private:
 
     AudioMetadata activeTrackMetadata;
     juce::Array<double> timeBookmarks;
-
-    // A-B loop variables
     double loopPointA = -1.0;
     double loopPointB = -1.0;
     bool abLoopEnabled = false;
