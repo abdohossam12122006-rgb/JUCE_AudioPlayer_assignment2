@@ -386,3 +386,28 @@ void PlayerAudio::releaseResources()
     speedController.releaseResources();
     reverbProcessor.reset();
 }
+\void PlayerAudio::toggleloop() // turn on and of repeat mode 
+{
+    islooping = !islooping; 
+}
+void PlayerAudio::updateloop() // check if the sound is finished 
+{
+    if (islooping)
+    {
+        if (readerSource != nullptr &&
+            transportSource.getCurrentPosition() >= readerSource->getTotalLength() / sampleRate)
+        {
+            transportSource.setPosition(0.0);
+            transportSource.start();
+        }
+    }
+}
+// task 6 
+double PlayerAudio::getCurrntTime() const
+{
+    return transportSource.getCurrentPosition(); 
+}
+void PlayerAudio::setCurrntTime(double newTimeInSeconds)
+{
+    transportSource.setPosition(newTimeInSeconds);
+}
