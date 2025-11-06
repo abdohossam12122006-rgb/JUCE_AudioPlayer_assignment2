@@ -1,5 +1,7 @@
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include <taglib/fileref.h>
+#include <taglib/tag.h>
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
