@@ -84,3 +84,32 @@ private:
     double loopPointB = -1.0;
     bool abLoopEnabled = false;
 };
+// loop the audio file 
+void toggleloop(); 
+void updateloop(); 
+// getters for metadata
+juce::String getTitle() const 
+{
+    return title ;
+}
+juce::String getArtist() const
+{
+    return artist; 
+}
+juce::String getFilename() const
+{
+    return filename;
+}
+double getTime() const
+{
+    return time;
+}
+// task 6 
+double getCurrntTime() const;
+void setCurrntTime(double newTimeInSecond);
+private
+bool islooping = false; 
+double sampleRate = 0.0; 
+juce::String title, artist, filename;
+double time = 0.0;
+
