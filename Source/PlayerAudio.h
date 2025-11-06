@@ -33,7 +33,7 @@ public:
     void adjustPlaybackRate(double rate);
     double getCurrentPlaybackRate() const;
 
-    // Task 10 looping
+    // Task 10: A-B looping
     void markPointA();
     void markPointB();
     void toggleABLooping();

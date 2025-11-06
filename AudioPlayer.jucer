@@ -13,6 +13,14 @@
       <FILE id="n1sajy" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
     </GROUP>
+    <FILE id="ai9BlF" name="CustomLookAndFeel.cpp" compile="1" resource="0"
+          file="Source/CustomLookAndFeel.cpp"/>
+    <FILE id="lFJWHD" name="CustomLookAndFeel.h" compile="0" resource="0"
+          file="Source/CustomLookAndFeel.h"/>
+    <FILE id="a9744j" name="WaveformDisplay.cpp" compile="1" resource="0"
+          file="Source/WaveformDisplay.cpp"/>
+    <FILE id="YsaCrg" name="WaveformDisplay.h" compile="0" resource="0"
+          file="Source/WaveformDisplay.h"/>
   </MAINGROUP>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
@@ -22,6 +30,7 @@
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
@@ -31,8 +40,10 @@
   <EXPORTFORMATS>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="AudioPlayer"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="AudioPlayer"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="AudioPlayer" headerPath="C:\vcpkg\installed\x64-windows\include"
+                       libraryPath="C:\vcpkg\installed\x64-windows\lib" extraLinkerFlags="tag.lib"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="AudioPlayer" headerPath="C:\vcpkg\installed\x64-windows\include"
+                       libraryPath="C:\vcpkg\installed\x64-windows\lib" extraLinkerFlags="tag.lib"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../modules"/>
@@ -46,6 +57,7 @@
         <MODULEPATH id="juce_data_structures" path="../modules"/>
         <MODULEPATH id="juce_audio_formats" path="../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../modules"/>
+        <MODULEPATH id="juce_dsp" path="../modules"/>
       </MODULEPATHS>
     </VS2022>
   </EXPORTFORMATS>

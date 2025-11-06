@@ -184,7 +184,7 @@ double PlayerAudio::getRelativePlayPos() const
     return 0.0;
 }
 
-// TASK 6: Speed Control 
+//  TASK 6: Speed Control
 void PlayerAudio::adjustPlaybackRate(double rate)
 {
     playbackSpeed = juce::jlimit(0.5, 2.0, rate);
@@ -196,7 +196,7 @@ double PlayerAudio::getCurrentPlaybackRate() const
     return playbackSpeed;
 }
 
-//  Task 10:Looping 
+// TASK 10: A-B Looping 
 void PlayerAudio::markPointA()
 {
     loopPointA = playbackEngine.getCurrentPosition();
