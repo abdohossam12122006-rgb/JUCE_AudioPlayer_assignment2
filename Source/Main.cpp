@@ -1,5 +1,8 @@
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include <taglib/fileref.h>
+#include <taglib/tag.h>
+
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
@@ -8,35 +11,36 @@ public:
 
     void initialise(const juce::String&) override
     {
-        mainWindow = std::make_unique<MainWindow>(getApplicationName());
+        appMainWindow = std::make_unique<MainWindow>(getApplicationName());
     }
 
     void shutdown() override
     {
-        mainWindow = nullptr;
+        appMainWindow = nullptr;
     }
 
 private:
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow(juce::String name)
-            : DocumentWindow(name,
+        MainWindow(juce::String windowTitle)
+            : DocumentWindow(windowTitle,
                 juce::Colours::lightgrey,
                 DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new MainComponent(), true);
-            centreWithSize(400, 200);
+            centreWithSize(700, 650);
             setVisible(true);
         }
+
         void closeButtonPressed() override
         {
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
     };
 
-    std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<MainWindow> appMainWindow;
 };
 
 START_JUCE_APPLICATION(SimpleAudioPlayer)

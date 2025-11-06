@@ -1,112 +1,413 @@
-#include "PlayerAudio.h"
+ï»¿#include "PlayerAudio.h"
 
 PlayerAudio::PlayerAudio()
+    : activeFileIndex(-1),
+    speedController(&playbackEngine, false)
 {
-    formatManager.registerBasicFormats();
-    transportSource.setGain(lastGain);
+    audioFormatHandler.registerBasicFormats();
+    playbackEngine.setGain(storedVolume);
+    speedController.setResamplingRatio(playbackSpeed);
+
+    reverbConfig.roomSize = 0.5f;
+    reverbConfig.damping = 0.5f;
+    reverbConfig.wetLevel = 0.33f;
+    reverbConfig.dryLevel = 0.4f;
+    reverbConfig.width = 1.0f;
+
+    reverbProcessor.setParameters(reverbConfig);
 }
 
-void PlayerAudio::loadFile(const juce::File& file)
+juce::File PlayerAudio::getStateStorageFile() const
 {
-    transportSource.stop();
-    transportSource.setSource(nullptr);
-    readerSource.reset(nullptr);
+    auto appDataFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+    auto appSpecificFolder = appDataFolder.getChildFile("MyAudioPlayer");
+    if (!appSpecificFolder.exists())
+        appSpecificFolder.createDirectory();
 
-    bIsPlaying = false;
+    return appSpecificFolder.getChildFile("session.xml");
+}
 
-    auto* reader = formatManager.createReaderFor(file);
+void PlayerAudio::openAudioFile(const juce::File& file)
+{
+    playbackEngine.stop();
+    playbackEngine.setSource(nullptr);
+    audioFileReader.reset(nullptr);
 
-    if (reader != nullptr)
+    playbackRunning = false;
+    timeBookmarks.clear();
+    clearABLoop();
+
+    auto* fileReader = audioFormatHandler.createReaderFor(file);
+
+    if (fileReader != nullptr)
     {
-        auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-        transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
-        readerSource.reset(newSource.release());
+        auto readerWrapper = std::make_unique<juce::AudioFormatReaderSource>(fileReader, true);
+        playbackEngine.setSource(readerWrapper.get(), 0, nullptr, fileReader->sampleRate);
+        audioFileReader.reset(readerWrapper.release());
+
+        TagLib::FileRef tagReader(file.getFullPathName().toWideCharPointer());
+
+        if (tagReader.isNull() || !tagReader.tag())
+        {
+            activeTrackMetadata.songTitle = file.getFileNameWithoutExtension();
+            activeTrackMetadata.artistName = "Unknown Artist";
+            activeTrackMetadata.albumName = "Unknown Album";
+        }
+        else
+        {
+            activeTrackMetadata.songTitle = tagReader.tag()->title().toCString(true);
+            activeTrackMetadata.artistName = tagReader.tag()->artist().toCString(true);
+            activeTrackMetadata.albumName = tagReader.tag()->album().toCString(true);
+
+            if (activeTrackMetadata.songTitle.isEmpty())
+                activeTrackMetadata.songTitle = file.getFileNameWithoutExtension();
+            if (activeTrackMetadata.artistName.isEmpty())
+                activeTrackMetadata.artistName = "Unknown Artist";
+            if (activeTrackMetadata.albumName.isEmpty())
+                activeTrackMetadata.albumName = "Unknown Album";
+        }
+
+        auto lengthInSecs = playbackEngine.getLengthInSeconds();
+        auto minutes = (int)(lengthInSecs / 60);
+        auto seconds = (int)(lengthInSecs) % 60;
+        activeTrackMetadata.trackLength = juce::String::formatted("%02d:%02d", minutes, seconds);
     }
 }
 
-void PlayerAudio::togglePlayPause()
+AudioMetadata PlayerAudio::getActiveTrackMetadata() const
 {
-    if (bIsPlaying)
+    return activeTrackMetadata;
+}
+
+void PlayerAudio::appendFilesToPlaylist(const juce::Array<juce::File>& files)
+{
+    playlistFiles.addArray(files);
+    if (activeFileIndex == -1 && playlistFiles.size() > 0)
     {
-        transportSource.stop();
-        bIsPlaying = false;
+        activeFileIndex = 0;
+        openAudioFile(playlistFiles[activeFileIndex]);
+    }
+}
+
+void PlayerAudio::advanceToNext()
+{
+    if (playlistFiles.size() > 0)
+    {
+        activeFileIndex = (activeFileIndex + 1) % playlistFiles.size();
+        openAudioFile(playlistFiles[activeFileIndex]);
+        switchPlayState();
+    }
+}
+
+void PlayerAudio::returnToPrevious()
+{
+    if (playlistFiles.size() > 0)
+    {
+        activeFileIndex = (activeFileIndex - 1);
+        if (activeFileIndex < 0)
+            activeFileIndex = playlistFiles.size() - 1;
+
+        openAudioFile(playlistFiles[activeFileIndex]);
+        switchPlayState();
+    }
+}
+
+void PlayerAudio::switchPlayState()
+{
+    if (activeFileIndex == -1)
+        return;
+
+    if (playbackRunning)
+    {
+        playbackEngine.stop();
+        playbackRunning = false;
     }
     else
-    { // <-- åäÇ ßÇä ÇáÎØÃ¡ ÃäÇ ÕáÍÊåÇ
-        transportSource.start();
-        bIsPlaying = true;
+    {
+        playbackEngine.start();
+        playbackRunning = true;
     }
 }
 
-bool PlayerAudio::isPlaying() const
+bool PlayerAudio::checkPlaybackStatus() const
 {
-    return bIsPlaying;
+    return playbackRunning;
 }
 
-void PlayerAudio::toggleMute()
+void PlayerAudio::switchMuteState()
 {
-    isMuted = !isMuted;
-    if (isMuted)
+    muteEnabled = !muteEnabled;
+    if (muteEnabled)
     {
-        transportSource.setGain(0.0f);
+        playbackEngine.setGain(0.0f);
     }
     else
     {
-        transportSource.setGain(lastGain);
+        playbackEngine.setGain(storedVolume);
     }
 }
 
-void PlayerAudio::toggleLooping()
+void PlayerAudio::switchLoopState()
 {
-    if (readerSource != nullptr)
+    if (audioFileReader != nullptr)
     {
-        readerSource->setLooping(!readerSource->isLooping());
+        audioFileReader->setLooping(!audioFileReader->isLooping());
     }
 }
 
-void PlayerAudio::setGain(float gain)
+void PlayerAudio::adjustVolumeLevel(float level)
 {
-    lastGain = gain;
-    if (!isMuted)
+    storedVolume = level;
+    if (!muteEnabled)
     {
-        transportSource.setGain(lastGain);
+        playbackEngine.setGain(storedVolume);
     }
 }
 
-void PlayerAudio::setPositionRelative(double newPositionRatio)
+void PlayerAudio::seekToRelativePos(double ratio)
 {
-    auto totalLength = transportSource.getLengthInSeconds();
-
-    if (totalLength > 0.0)
+    auto totalDuration = playbackEngine.getLengthInSeconds();
+    if (totalDuration > 0.0)
     {
-        auto newPosition = totalLength * newPositionRatio;
-        transportSource.setPosition(newPosition);
+        auto targetPos = totalDuration * ratio;
+        playbackEngine.setPosition(targetPos);
     }
 }
 
-double PlayerAudio::getCurrentPositionRelative() const
+double PlayerAudio::getRelativePlayPos() const
 {
-    auto totalLength = transportSource.getLengthInSeconds();
-
-    if (totalLength > 0.0)
+    auto totalDuration = playbackEngine.getLengthInSeconds();
+    if (totalDuration > 0.0)
     {
-        return transportSource.getCurrentPosition() / totalLength;
+        return playbackEngine.getCurrentPosition() / totalDuration;
     }
-
     return 0.0;
+}
+
+//  TASK 6: Speed Control
+void PlayerAudio::adjustPlaybackRate(double rate)
+{
+    playbackSpeed = juce::jlimit(0.5, 2.0, rate);
+    speedController.setResamplingRatio(playbackSpeed);
+}
+
+double PlayerAudio::getCurrentPlaybackRate() const
+{
+    return playbackSpeed;
+}
+
+// TASK 10: A-B Looping 
+void PlayerAudio::markPointA()
+{
+    loopPointA = playbackEngine.getCurrentPosition();
+    if (loopPointB > 0 && loopPointA >= loopPointB)
+    {
+        loopPointB = -1.0;
+        abLoopEnabled = false;
+    }
+}
+
+void PlayerAudio::markPointB()
+{
+    loopPointB = playbackEngine.getCurrentPosition();
+    if (loopPointA > 0 && loopPointB > loopPointA)
+    {
+        abLoopEnabled = true;
+    }
+}
+
+void PlayerAudio::toggleABLooping()
+{
+    if (loopPointA > 0 && loopPointB > loopPointA)
+    {
+        abLoopEnabled = !abLoopEnabled;
+    }
+}
+
+bool PlayerAudio::isABLoopActive() const
+{
+    return abLoopEnabled;
+}
+
+void PlayerAudio::clearABLoop()
+{
+    loopPointA = -1.0;
+    loopPointB = -1.0;
+    abLoopEnabled = false;
+}
+
+void PlayerAudio::checkABLoopPosition()
+{
+    if (abLoopEnabled && loopPointA > 0 && loopPointB > loopPointA)
+    {
+        auto currentPos = playbackEngine.getCurrentPosition();
+        if (currentPos >= loopPointB)
+        {
+            playbackEngine.setPosition(loopPointA);
+        }
+    }
+}
+
+// TASK 12: Jump Forward/Backward 
+void PlayerAudio::skipAheadInTime(double secs)
+{
+    auto nowPos = playbackEngine.getCurrentPosition();
+    auto totalDuration = playbackEngine.getLengthInSeconds();
+    auto targetPos = nowPos + secs;
+
+    if (targetPos > totalDuration)
+        targetPos = totalDuration;
+
+    playbackEngine.setPosition(targetPos);
+}
+
+void PlayerAudio::skipBackInTime(double secs)
+{
+    auto nowPos = playbackEngine.getCurrentPosition();
+    auto targetPos = nowPos - secs;
+
+    if (targetPos < 0.0)
+        targetPos = 0.0;
+
+    playbackEngine.setPosition(targetPos);
+}
+
+//  TASK 13: Save and Load Session
+void PlayerAudio::storeCurrentState()
+{
+    auto stateXml = std::make_unique<juce::XmlElement>("SESSION");
+
+    stateXml->setAttribute("currentTrackIndex", activeFileIndex);
+    stateXml->setAttribute("currentPosition", playbackEngine.getCurrentPosition());
+    stateXml->setAttribute("playbackSpeed", playbackSpeed);
+
+    auto playlistNode = new juce::XmlElement("PLAYLIST");
+
+    for (const auto& fileItem : playlistFiles)
+    {
+        auto trackNode = new juce::XmlElement("TRACK");
+        trackNode->setAttribute("path", fileItem.getFullPathName());
+        playlistNode->addChildElement(trackNode);
+    }
+
+    stateXml->addChildElement(playlistNode);
+
+    auto stateFile = getStateStorageFile();
+    stateXml->writeTo(stateFile);
+
+    juce::Logger::writeToLog("Session saved to: " + stateFile.getFullPathName());
+}
+
+juce::File PlayerAudio::restorePreviousState()
+{
+    auto stateFile = getStateStorageFile();
+    if (!stateFile.existsAsFile())
+    {
+        juce::Logger::writeToLog("No session file found.");
+        return juce::File{};
+    }
+
+    juce::XmlDocument xmlParser(stateFile);
+    if (auto stateXml = xmlParser.getDocumentElement())
+    {
+        playlistFiles.clear();
+
+        if (auto playlistNode = stateXml->getChildByName("PLAYLIST"))
+        {
+            for (auto* trackNode : playlistNode->getChildIterator())
+            {
+                if (trackNode->hasTagName("TRACK"))
+                {
+                    playlistFiles.add(juce::File(trackNode->getStringAttribute("path")));
+                }
+            }
+        }
+
+        activeFileIndex = stateXml->getIntAttribute("currentTrackIndex", -1);
+        auto restoredPos = stateXml->getDoubleAttribute("currentPosition", 0.0);
+        playbackSpeed = stateXml->getDoubleAttribute("playbackSpeed", 1.0);
+
+        if (activeFileIndex >= 0 && activeFileIndex < playlistFiles.size())
+        {
+            openAudioFile(playlistFiles[activeFileIndex]);
+            playbackEngine.setPosition(restoredPos);
+            adjustPlaybackRate(playbackSpeed);
+
+            juce::Logger::writeToLog("Session loaded.");
+            return playlistFiles[activeFileIndex];
+        }
+    }
+
+    juce::Logger::writeToLog("Error parsing session file.");
+    return juce::File{};
+}
+
+// TASK 14: Markers
+void PlayerAudio::createTimeBookmark()
+{
+    auto nowTime = playbackEngine.getCurrentPosition();
+    timeBookmarks.add(nowTime);
+    timeBookmarks.sort();
+}
+
+void PlayerAudio::navigateToBookmark(int idx)
+{
+    if (idx >= 0 && idx < timeBookmarks.size())
+    {
+        playbackEngine.setPosition(timeBookmarks[idx]);
+    }
+}
+
+const juce::Array<double>& PlayerAudio::getTimeBookmarks() const
+{
+    return timeBookmarks;
 }
 
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    playbackEngine.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    speedController.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    reverbProcessor.setSampleRate(sampleRate);
 }
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    transportSource.getNextAudioBlock(bufferToFill);
+    checkABLoopPosition();
+
+    speedController.getNextAudioBlock(bufferToFill);
+    reverbProcessor.processStereo(bufferToFill.buffer->getWritePointer(0),
+        bufferToFill.buffer->getWritePointer(1),
+        bufferToFill.numSamples);
 }
 
 void PlayerAudio::releaseResources()
 {
-    transportSource.releaseResources();
+    playbackEngine.releaseResources();
+    speedController.releaseResources();
+    reverbProcessor.reset();
+}
+\void PlayerAudio::toggleloop() // turn on and of repeat mode 
+{
+    islooping = !islooping; 
+}
+void PlayerAudio::updateloop() // check if the sound is finished 
+{
+    if (islooping)
+    {
+        if (readerSource != nullptr &&
+            transportSource.getCurrentPosition() >= readerSource->getTotalLength() / sampleRate)
+        {
+            transportSource.setPosition(0.0);
+            transportSource.start();
+        }
+    }
+}
+// task 6 
+double PlayerAudio::getCurrntTime() const
+{
+    return transportSource.getCurrentPosition(); 
+}
+void PlayerAudio::setCurrntTime(double newTimeInSeconds)
+{
+    transportSource.setPosition(newTimeInSeconds);
 }
