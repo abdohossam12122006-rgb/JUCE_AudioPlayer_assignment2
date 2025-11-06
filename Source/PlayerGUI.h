@@ -1,14 +1,14 @@
 #pragma once
 #include <JuceHeader.h>
-#include "PlayerAudio.h" 
-#include "CustomLookAndFeel.h" 
-#include "WaveformDisplay.h"  
+#include "PlayerAudio.h"
+#include "CustomLookAndFeel.h"
+#include "WaveformDisplay.h"
 
 class PlayerGUI : public juce::Component,
     public juce::Button::Listener,
     public juce::Slider::Listener,
     public juce::Timer,
-    public juce::ListBoxModel 
+    public juce::ListBoxModel
 {
 public:
     PlayerGUI(PlayerAudio& audio);
@@ -26,41 +26,59 @@ public:
     void listBoxItemClicked(int rowNumber, const juce::MouseEvent& e) override;
 
 private:
-    void updateTrackInfo();
+    void refreshMetadataDisplay();
+    void updateABLoopStatus();
 
-    PlayerAudio& playerAudio;
+    PlayerAudio& audioEngine;
 
-    juce::TextButton btnLoad{ "Load" };
-    juce::TextButton btnPlayPause{ "Play" };
-    juce::TextButton btnMute{ "Mute" };
-    juce::TextButton btnLoop{ "Loop" };
+    // Basic controls
+    juce::TextButton loadFilesBtn{ "Load" };
+    juce::TextButton playPauseBtn{ "Play" };
+    juce::TextButton muteToggleBtn{ "Mute" };
+    juce::TextButton loopToggleBtn{ "Loop" };
 
-    juce::TextButton btnPrevious{ "Prev" };
-    juce::TextButton btnNext{ "Next" };
+    juce::TextButton previousTrackBtn{ "Prev" };
+    juce::TextButton nextTrackBtn{ "Next" };
 
-    juce::TextButton btnJumpFwd{ "+10s" };
-    juce::TextButton btnJumpBwd{ "-10s" };
-    juce::TextButton btnSave{ "Save" };
-    juce::TextButton btnLoadSession{ "Load" };
-    juce::TextButton btnAddMarker{ "Add Marker" };
-    juce::ListBox markerListBox;
+    // Task 6: Speed control
+    juce::Slider speedRateSlider;
+    juce::Label speedDisplayLabel;
 
+    // Task 10:looping
+    juce::TextButton setPointABtn{ "Set A" };
+    juce::TextButton setPointBBtn{ "Set B" };
+    juce::TextButton toggleABBtn{ "AB Loop" };
+    juce::TextButton clearABBtn{ "Clear AB" };
+    juce::Label abLoopStatusLabel;
 
-    juce::Slider volumeControl;
-    juce::Slider positionSlider;
+    // Task 12: Jump buttons
+    juce::TextButton jumpForwardBtn{ "+10s" };
+    juce::TextButton jumpBackwardBtn{ "-10s" };
 
-    std::unique_ptr<juce::FileChooser> fileSelector;
+    // Task 13: Session buttons
+    juce::TextButton saveStateBtn{ "Save" };
+    juce::TextButton loadStateBtn{ "Load" };
 
-    CustomLookAndFeel customLookAndFeel;
+    // Task 14: Marker controls
+    juce::TextButton addBookmarkBtn{ "Add Marker" };
+    juce::ListBox bookmarkListBox;
 
-    juce::AudioFormatManager formatManager;
-    juce::AudioThumbnailCache thumbCache{ 5 };
-    WaveformDisplay waveformDisplay;
+    juce::Slider volumeSlider;
+    juce::Slider seekSlider;
 
-    juce::Label titleLabel;
-    juce::Label artistLabel;
-    juce::Label albumLabel;
-    juce::Label durationLabel;
+    std::unique_ptr<juce::FileChooser> filePickerDialog;
+
+    CustomLookAndFeel customVisuals;
+
+    juce::AudioFormatManager audioFormats;
+    juce::AudioThumbnailCache waveformCache{ 5 };
+    WaveformDisplay waveformViewer;
+
+    // Task 9: Metadata display
+    juce::Label songTitleDisplay;
+    juce::Label artistNameDisplay;
+    juce::Label albumTitleDisplay;
+    juce::Label durationDisplay;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };

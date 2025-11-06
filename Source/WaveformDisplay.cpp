@@ -1,15 +1,15 @@
 #include "WaveformDisplay.h"
 
-WaveformDisplay::WaveformDisplay(juce::AudioFormatManager& formatManagerToUse,
-    juce::AudioThumbnailCache& cacheToUse) :
-    audioThumb(1000, formatManagerToUse, cacheToUse)
+WaveformDisplay::WaveformDisplay(juce::AudioFormatManager& formatHandlerRef,
+    juce::AudioThumbnailCache& thumbnailCacheRef) :
+    waveformThumbnail(1000, formatHandlerRef, thumbnailCacheRef)
 {
-    audioThumb.addChangeListener(this);
+    waveformThumbnail.addChangeListener(this);
 }
 
 WaveformDisplay::~WaveformDisplay()
 {
-    audioThumb.removeChangeListener(this);
+    waveformThumbnail.removeChangeListener(this);
 }
 
 void WaveformDisplay::paint(juce::Graphics& g)
@@ -17,12 +17,12 @@ void WaveformDisplay::paint(juce::Graphics& g)
     g.fillAll(juce::Colours::darkgrey.darker(0.3f));
     g.setColour(juce::Colours::orange);
 
-    if (audioThumb.getTotalLength() > 0.0)
+    if (waveformThumbnail.getTotalLength() > 0.0)
     {
-        audioThumb.drawChannels(g,
+        waveformThumbnail.drawChannels(g,
             getLocalBounds(),
             0.0,
-            audioThumb.getTotalLength(),
+            waveformThumbnail.getTotalLength(),
             1.0f);
     }
     else
@@ -37,15 +37,15 @@ void WaveformDisplay::resized()
 {
 }
 
-void WaveformDisplay::loadURL(const juce::URL& audioURL)
+void WaveformDisplay::loadURL(const juce::URL& fileURL)
 {
-    audioThumb.clear();
-    audioThumb.setSource(new juce::URLInputSource(audioURL));
+    waveformThumbnail.clear();
+    waveformThumbnail.setSource(new juce::URLInputSource(fileURL));
 }
 
-void WaveformDisplay::changeListenerCallback(juce::ChangeBroadcaster* source)
+void WaveformDisplay::changeListenerCallback(juce::ChangeBroadcaster* broadcaster)
 {
-    if (source == &audioThumb)
+    if (broadcaster == &waveformThumbnail)
     {
         repaint();
     }

@@ -4,12 +4,12 @@
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 
-struct TrackInfo
+struct AudioMetadata
 {
-    juce::String title;
-    juce::String artist;
-    juce::String album;
-    juce::String duration;
+    juce::String songTitle;
+    juce::String artistName;
+    juce::String albumName;
+    juce::String trackLength;
 };
 
 class PlayerAudio : public juce::AudioSource
@@ -17,56 +17,72 @@ class PlayerAudio : public juce::AudioSource
 public:
     PlayerAudio();
 
-    void togglePlayPause();
-    bool isPlaying() const;
+    void switchPlayState();
+    bool checkPlaybackStatus() const;
+    void switchMuteState();
+    void switchLoopState();
+    void adjustVolumeLevel(float level);
+    void seekToRelativePos(double ratio);
+    double getRelativePlayPos() const;
+    void appendFilesToPlaylist(const juce::Array<juce::File>& files);
+    void advanceToNext();
+    void returnToPrevious();
+    AudioMetadata getActiveTrackMetadata() const;
 
-    void toggleMute();
-    void toggleLooping();
-    void setGain(float gain);
+    // Task 6: Speed control
+    void adjustPlaybackRate(double rate);
+    double getCurrentPlaybackRate() const;
 
-    void setPositionRelative(double newPositionRatio);
-    double getCurrentPositionRelative() const;
+    // Task 10 looping
+    void markPointA();
+    void markPointB();
+    void toggleABLooping();
+    bool isABLoopActive() const;
+    void clearABLoop();
 
-    void addFilesToQueue(const juce::Array<juce::File>& files);
-    void playNext();
-    void playPrevious();
+    // Task 12: Time jumps
+    void skipAheadInTime(double secs);
+    void skipBackInTime(double secs);
 
-    TrackInfo getCurrentTrackInfo() const;
+    // Task 13: Session persistence
+    void storeCurrentState();
+    juce::File restorePreviousState();
 
-    void jumpForward(double seconds);
-    void jumpBackward(double seconds);
-
-    void saveSession();
-    juce::File loadSession();
-
-    void addMarker();
-    void jumpToMarker(int markerIndex);
-    const juce::Array<double>& getMarkers() const;
+    // Task 14: Markers
+    void createTimeBookmark();
+    void navigateToBookmark(int idx);
+    const juce::Array<double>& getTimeBookmarks() const;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
 
 private:
-    void loadTrack(const juce::File& file);
-    juce::File getSessionFile() const;
+    void openAudioFile(const juce::File& file);
+    juce::File getStateStorageFile() const;
+    void checkABLoopPosition();
 
-    juce::AudioFormatManager formatManager;
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
-    juce::AudioTransportSource transportSource;
+    juce::AudioFormatManager audioFormatHandler;
+    std::unique_ptr<juce::AudioFormatReaderSource> audioFileReader;
+    juce::AudioTransportSource playbackEngine;
+    juce::ResamplingAudioSource speedController;
 
-    bool isMuted = false;
-    float lastGain = 0.5f;
+    bool muteEnabled = false;
+    float storedVolume = 0.5f;
+    bool playbackRunning = false;
+    double playbackSpeed = 1.0;
 
-    bool bIsPlaying = false;
+    juce::Reverb reverbProcessor;
+    juce::Reverb::Parameters reverbConfig;
 
-    juce::Reverb reverb;
-    juce::Reverb::Parameters reverbParameters;
+    juce::Array<juce::File> playlistFiles;
+    int activeFileIndex;
 
-    juce::Array<juce::File> trackFiles;
-    int currentTrackIndex;
+    AudioMetadata activeTrackMetadata;
+    juce::Array<double> timeBookmarks;
 
-    TrackInfo currentTrackInfo;
-
-    juce::Array<double> trackMarkers;
+    // A-B loop variables
+    double loopPointA = -1.0;
+    double loopPointB = -1.0;
+    bool abLoopEnabled = false;
 };
