@@ -19,7 +19,6 @@ public:
 
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
-
     void timerCallback() override;
     int getNumRows() override;
     void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
@@ -37,6 +36,7 @@ private:
     juce::TextButton muteToggleBtn{ "Mute" };
     juce::TextButton loopToggleBtn{ "Loop" };
 
+    // Playlist controls
     juce::TextButton previousTrackBtn{ "Prev" };
     juce::TextButton nextTrackBtn{ "Next" };
 
@@ -44,7 +44,7 @@ private:
     juce::Slider speedRateSlider;
     juce::Label speedDisplayLabel;
 
-    // Task 10:looping
+    // Task 10: A-B looping
     juce::TextButton setPointABtn{ "Set A" };
     juce::TextButton setPointBBtn{ "Set B" };
     juce::TextButton toggleABBtn{ "AB Loop" };
@@ -63,13 +63,14 @@ private:
     juce::TextButton addBookmarkBtn{ "Add Marker" };
     juce::ListBox bookmarkListBox;
 
+    // Main Sliders
     juce::Slider volumeSlider;
     juce::Slider seekSlider;
 
     std::unique_ptr<juce::FileChooser> filePickerDialog;
-
     CustomLookAndFeel customVisuals;
 
+    // Waveform
     juce::AudioFormatManager audioFormats;
     juce::AudioThumbnailCache waveformCache{ 5 };
     WaveformDisplay waveformViewer;

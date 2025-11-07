@@ -1,46 +1,70 @@
 #include <JuceHeader.h>
 #include "MainComponent.h"
-#include <taglib/fileref.h>
-#include <taglib/tag.h>
 
-class SimpleAudioPlayer : public juce::JUCEApplication
+#define JUCE_APPLICATION_NAME_STRING    "AudioPlayer"
+#define JUCE_APPLICATION_VERSION_STRING "1.0.0"
+
+class AudioPlayerApplication : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override { return "Simple Audio Player"; }
-    const juce::String getApplicationVersion() override { return "1.0"; }
+    AudioPlayerApplication() {}
 
-    void initialise(const juce::String&) override
+    const juce::String getApplicationName() override { return JUCE_APPLICATION_NAME_STRING; }
+    const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
+    bool moreThanOneInstanceAllowed() override { return true; }
+
+    void initialise(const juce::String& commandLine) override
     {
-        appMainWindow = std::make_unique<MainWindow>(getApplicationName());
+        mainWindow.reset(new MainWindow(getApplicationName()));
     }
 
     void shutdown() override
     {
-        appMainWindow = nullptr;
+        mainWindow = nullptr;
     }
 
-private:
+    void systemRequestedQuit() override
+    {
+        quit();
+    }
+
+    void anotherInstanceStarted(const juce::String& commandLine) override
+    {
+    }
+
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow(juce::String windowTitle)
-            : DocumentWindow(windowTitle,
-                juce::Colours::lightgrey,
+        MainWindow(juce::String name)
+            : DocumentWindow(name,
+                juce::Desktop::getInstance().getDefaultLookAndFeel()
+                .findColour(juce::ResizableWindow::backgroundColourId),
                 DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new MainComponent(), true);
-            centreWithSize(700, 650);
+
+#if JUCE_IOS || JUCE_ANDROID
+            setFullScreen(true);
+#else
+            setResizable(true, true);
+            centreWithSize(getWidth(), getHeight());
+#endif
+
             setVisible(true);
         }
 
         void closeButtonPressed() override
         {
-            juce::JUCEApplication::getInstance()->systemRequestedQuit();
+            JUCEApplication::getInstance()->systemRequestedQuit();
         }
+
+    private:
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
     };
 
-    std::unique_ptr<MainWindow> appMainWindow;
+private:
+    std::unique_ptr<MainWindow> mainWindow;
 };
 
-START_JUCE_APPLICATION(SimpleAudioPlayer)
+START_JUCE_APPLICATION(AudioPlayerApplication)

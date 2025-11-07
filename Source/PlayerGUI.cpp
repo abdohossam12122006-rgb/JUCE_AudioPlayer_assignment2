@@ -309,7 +309,7 @@ void PlayerGUI::timerCallback()
         auto relativePos = audioEngine.getRelativePlayPos();
         seekSlider.setValue(relativePos, juce::dontSendNotification);
     }
-
+    audioEngine.updateloop();
     updateABLoopStatus();
 }
 
@@ -336,7 +336,7 @@ void PlayerGUI::updateABLoopStatus()
     }
 }
 
-// Task 14: Marker list implementation
+// Task 14: Marker list 
 int PlayerGUI::getNumRows()
 {
     return audioEngine.getTimeBookmarks().size();

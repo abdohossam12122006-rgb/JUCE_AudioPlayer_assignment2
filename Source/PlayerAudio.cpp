@@ -41,6 +41,8 @@ void PlayerAudio::openAudioFile(const juce::File& file)
 
     if (fileReader != nullptr)
     {
+        sampleRate = fileReader->sampleRate; 
+
         auto readerWrapper = std::make_unique<juce::AudioFormatReaderSource>(fileReader, true);
         playbackEngine.setSource(readerWrapper.get(), 0, nullptr, fileReader->sampleRate);
         audioFileReader.reset(readerWrapper.release());
@@ -184,7 +186,7 @@ double PlayerAudio::getRelativePlayPos() const
     return 0.0;
 }
 
-//  TASK 6: Speed Control
+// TASK 6: Speed Control
 void PlayerAudio::adjustPlaybackRate(double rate)
 {
     playbackSpeed = juce::jlimit(0.5, 2.0, rate);
@@ -272,7 +274,7 @@ void PlayerAudio::skipBackInTime(double secs)
     playbackEngine.setPosition(targetPos);
 }
 
-//  TASK 13: Save and Load Session
+// TASK 13: Save and Load Session
 void PlayerAudio::storeCurrentState()
 {
     auto stateXml = std::make_unique<juce::XmlElement>("SESSION");
@@ -385,4 +387,32 @@ void PlayerAudio::releaseResources()
     playbackEngine.releaseResources();
     speedController.releaseResources();
     reverbProcessor.reset();
+}
+
+void PlayerAudio::toggleloop()  
+{
+    islooping = !islooping;
+}
+
+void PlayerAudio::updateloop() 
+{
+    if (islooping)
+    {
+        if (audioFileReader != nullptr &&
+            playbackEngine.getCurrentPosition() >= audioFileReader->getTotalLength() / sampleRate)
+        {
+            playbackEngine.setPosition(0.0);
+            playbackEngine.start();
+        }
+    }
+}
+
+double PlayerAudio::getCurrntTime() const
+{
+    return playbackEngine.getCurrentPosition();
+}
+
+void PlayerAudio::setCurrntTime(double newTimeInSeconds)
+{
+    playbackEngine.setPosition(newTimeInSeconds);
 }
