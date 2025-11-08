@@ -3,12 +3,11 @@
 #include "PlayerAudio.h"
 #include "CustomLookAndFeel.h"
 #include "WaveformDisplay.h"
-
+#include "TransportComponent.h"
+#include "SidePanelComponent.h"
 class PlayerGUI : public juce::Component,
     public juce::Button::Listener,
-    public juce::Slider::Listener,
-    public juce::Timer,
-    public juce::ListBoxModel
+    public juce::Slider::Listener
 {
 public:
     PlayerGUI(PlayerAudio& audio);
@@ -19,26 +18,17 @@ public:
 
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
-    void timerCallback() override;
-    int getNumRows() override;
-    void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
-    void listBoxItemClicked(int rowNumber, const juce::MouseEvent& e) override;
 
 private:
     void refreshMetadataDisplay();
     void updateABLoopStatus();
 
     PlayerAudio& audioEngine;
-
-    // Basic controls
+    TransportComponent transportControls;
+    SidePanelComponent markerPanel;
     juce::TextButton loadFilesBtn{ "Load" };
-    juce::TextButton playPauseBtn{ "Play" };
     juce::TextButton muteToggleBtn{ "Mute" };
     juce::TextButton loopToggleBtn{ "Loop" };
-
-    // Playlist controls
-    juce::TextButton previousTrackBtn{ "Prev" };
-    juce::TextButton nextTrackBtn{ "Next" };
 
     // Task 6: Speed control
     juce::Slider speedRateSlider;
@@ -51,26 +41,15 @@ private:
     juce::TextButton clearABBtn{ "Clear AB" };
     juce::Label abLoopStatusLabel;
 
-    // Task 12: Jump buttons
-    juce::TextButton jumpForwardBtn{ "+10s" };
-    juce::TextButton jumpBackwardBtn{ "-10s" };
-
     // Task 13: Session buttons
     juce::TextButton saveStateBtn{ "Save" };
     juce::TextButton loadStateBtn{ "Load" };
 
-    // Task 14: Marker controls
-    juce::TextButton addBookmarkBtn{ "Add Marker" };
-    juce::ListBox bookmarkListBox;
-
-    // Main Sliders
     juce::Slider volumeSlider;
-    juce::Slider seekSlider;
 
     std::unique_ptr<juce::FileChooser> filePickerDialog;
     CustomLookAndFeel customVisuals;
 
-    // Waveform
     juce::AudioFormatManager audioFormats;
     juce::AudioThumbnailCache waveformCache{ 5 };
     WaveformDisplay waveformViewer;

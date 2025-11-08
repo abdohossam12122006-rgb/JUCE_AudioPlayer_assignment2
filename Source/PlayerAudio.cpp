@@ -41,7 +41,7 @@ void PlayerAudio::openAudioFile(const juce::File& file)
 
     if (fileReader != nullptr)
     {
-        sampleRate = fileReader->sampleRate; 
+        sampleRate = fileReader->sampleRate;
 
         auto readerWrapper = std::make_unique<juce::AudioFormatReaderSource>(fileReader, true);
         playbackEngine.setSource(readerWrapper.get(), 0, nullptr, fileReader->sampleRate);
@@ -389,12 +389,12 @@ void PlayerAudio::releaseResources()
     reverbProcessor.reset();
 }
 
-void PlayerAudio::toggleloop()  
+void PlayerAudio::toggleloop()
 {
     islooping = !islooping;
 }
 
-void PlayerAudio::updateloop() 
+void PlayerAudio::updateloop()
 {
     if (islooping)
     {
@@ -415,4 +415,13 @@ double PlayerAudio::getCurrntTime() const
 void PlayerAudio::setCurrntTime(double newTimeInSeconds)
 {
     playbackEngine.setPosition(newTimeInSeconds);
+}
+
+juce::File PlayerAudio::getActiveFile() const
+{
+    if (activeFileIndex >= 0 && activeFileIndex < playlistFiles.size())
+    {
+        return playlistFiles[activeFileIndex];
+    }
+    return juce::File{}; 
 }

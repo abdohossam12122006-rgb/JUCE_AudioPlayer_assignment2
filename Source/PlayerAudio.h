@@ -62,26 +62,17 @@ public:
     void updateloop();
 
     // getters for metadata
-    juce::String getTitle() const
-    {
-        return title;
-    }
-    juce::String getArtist() const
-    {
-        return artist;
-    }
-    juce::String getFilename() const
-    {
-        return filename;
-    }
-    double getTime() const
-    {
-        return time;
-    }
+    juce::String getTitle() const { return title; }
+    juce::String getArtist() const { return artist; }
+    juce::String getFilename() const { return filename; }
+    double getTime() const { return time; }
 
     // task 6 
     double getCurrntTime() const;
     void setCurrntTime(double newTimeInSecond);
+    juce::File getActiveFile() const;
+    juce::Array<juce::File> playlistFiles;
+    int activeFileIndex;
 
 private:
     void openAudioFile(const juce::File& file);
@@ -100,10 +91,6 @@ private:
 
     juce::Reverb reverbProcessor;
     juce::Reverb::Parameters reverbConfig;
-
-    juce::Array<juce::File> playlistFiles;
-    int activeFileIndex;
-
     AudioMetadata activeTrackMetadata;
     juce::Array<double> timeBookmarks;
     double loopPointA = -1.0;
